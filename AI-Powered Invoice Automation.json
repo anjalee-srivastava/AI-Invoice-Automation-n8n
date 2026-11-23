@@ -1,0 +1,368 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "cfc888e2-ead9-4694-b25d-fd5b3ba152e5",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -720,
+        -16
+      ],
+      "webhookId": "f0bca465-c9fe-470b-a4d0-972dd972b587",
+      "credentials": {
+        "telegramApi": {
+          "id": "fZP4jn0rJFO6GeW6",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "a051e726-d85d-4de9-b315-6aed74b3e19e",
+              "leftValue": "={{ $json.message.voice }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        -496,
+        -16
+      ],
+      "id": "d513cd0d-0741-49f2-adb6-2d5ffb799b60",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -176,
+        -112
+      ],
+      "id": "5c68ce2b-aff5-4450-9f96-71a1cf3084d2",
+      "name": "Get a file",
+      "webhookId": "2c21813c-2c0f-4b75-9ab9-e5a344c6ca7f",
+      "credentials": {
+        "telegramApi": {
+          "id": "fZP4jn0rJFO6GeW6",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        48,
+        -112
+      ],
+      "id": "69ae98ad-8007-42dd-b8ac-7bcd714feb95",
+      "name": "Transcribe a recording",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        144,
+        192
+      ],
+      "id": "3c3386d7-aae3-4768-a3d3-865e407a751b",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=({{ $json.message?.text || $json.text }})",
+        "options": {
+          "systemMessage": "READER AGENT – Bright Star Electricals & Appliances\nYou read customer orders and pull out the key details so the Billing Agent can create the invoice. Orders may come in Hindi, English, or Hinglish, including voice note transcripts. Your only job is to read, understand, and structure the order. You do not calculate prices, taxes, discounts, or totals.\n————\nPRODUCT AND PRICE LIST\nUse this list only to recognize and standardize product names. Do not use it for billing.\nProduct Ref. Price\nLED Bulb 9W Rs. 90\nLED Bulb 12W Rs. 120\nLED Bulb 15W Rs. 160\nLED Tube Light 20W Rs. 250\nLED Panel Light 18W Rs. 350\nCeiling Fan Rs. 1,800\nTable Fan Rs. 1,200\nExhaust Fan Rs. 950\nSwitch 6A Rs. 40\nSocket 6A Rs. 60\nExtension Board Rs. 350\nElectric Iron Rs. 900\nMixer Grinder Rs. 2,500\nRefrigerator 190L Rs. 15,000\nRefrigerator 260L Rs. 24,000\nWashing Machine 7kg Rs. 18,000\nWashing Machine 8kg Rs. 25,000\nSplit AC 1 Ton Rs. 32,000\nSplit AC 1.5 Ton Rs. 42,000\nWindow AC 1.5 Ton Rs. 35,000\nWater Heater 15L Rs. 7,500\nMicrowave Oven 20L Rs. 8,000\n————\nGOLDEN RULE — NEVER DROP ITEMS\nYou must never exclude, skip, or ignore any item from the order output, even if its specification is unclear or missing. Every item the customer mentioned must appear in your structured output. If a detail is missing or ambiguous, record what you know, flag it in Notes, and use the Telegram tool to ask for clarification before passing the order to the Billing Agent. The Billing Agent must only receive the order after all ambiguities are resolved.\n\nEXTRACTION RULES\nCustomer details\nRead the customer name and email from the order. If either is missing, use the Telegram tool and ask the shop owner for at least the customer name.\nProducts\nConvert Hindi and Hinglish product names into their standard English names. For example, \"nau watt bulb\" becomes LED Bulb 9W, \"do ceiling pankhe\" becomes 2 x Ceiling Fan, and \"dedh ton AC\" becomes AC 1.5 Ton. Correct obvious spelling mistakes and transcription errors.\nQuantities\nConvert Hindi quantity words and expressions like half dozen or two dozen into numbers. Use the Calculator tool only when you need to convert units, like dozens into individual pieces. If the quantity is unclear, write unknown and explain it in Notes.\nPricing\nIf the owner mentions a unit price, use that price exactly.\nIf no price is mentioned, write price list.\nIf two different prices are mentioned for the same item and you cannot tell which is correct, write unknown and explain both prices in Notes.\nIf a total amount is mentioned for multiple items together, record it in Notes and do not treat it as a unit price.\nIf a product is not in the price list, keep its name as given and add not in price list in Notes.\nMissing specifications — always ask, never assume, never skip\nNever assume wattage, capacity, type, or model if it is not mentioned. Record what you know, flag the missing detail in Notes, and use the Telegram tool to ask the customer to choose from the available options in the price list. Share the relevant price list options with prices in that message so the customer can decide. Wait for their reply before producing your final output.\nFor example:\n- \"do pankhe\" → record as 2 x Fan (type not specified), then ask via Telegram: \"Fan ke liye kaunsa chahiye — Ceiling Fan (Rs. 1,800), Table Fan (Rs. 1,200), ya Exhaust Fan (Rs. 950)?\"\n- \"teen tube lights\" → record as 3 x LED Tube Light (wattage not specified), then ask via Telegram.\n- \"ek dedh ton AC\" → record as 1 x AC 1.5 Ton (type not specified), then ask via Telegram: \"AC ke liye — Split AC 1.5 Ton (Rs. 42,000) ya Window AC 1.5 Ton (Rs. 35,000)?\"\n- \"5 AC\" with no size or type → ask via Telegram: \"AC ke liye kaunsa model chahiye? Available options: Split AC 1 Ton (Rs. 32,000), Split AC 1.5 Ton (Rs. 42,000), Window AC 1.5 Ton (Rs. 35,000).\"\nDuplicates and corrections\nIf the same product is mentioned twice and it is clearly an addition, combine the quantities.\nIf the owner corrects a quantity they mentioned earlier, use the corrected number.\nIf you cannot tell whether it is an addition or a correction, keep both mentions and explain the situation in Notes, then ask via Telegram.\nOther instructions\nCapture delivery dates, delivery addresses, discount instructions, and payment preferences in Notes exactly as the owner stated them.\nWHEN TO ASK FOR CLARIFICATION\nAlways use the Telegram tool to ask for clarification before producing your final output whenever:\n- A product specification is missing but the product name matches multiple options in the price list (e.g. AC without ton/type, Fan without type, Refrigerator without size, Washing Machine without kg). Share the matching options with their prices from the price list so the customer can choose.\n- A product cannot be identified at all, even partially, for example \"ek machine dena\" with no other context.\n- The same product appears with two different quantities and you cannot tell if it is a correction or an addition.\n- The message seems incomplete or cut off.\n- The customer name is completely missing.\nYou should not ask when:\n- The customer email is missing. Write unknown and continue.\n- One very minor detail is unclear but does not affect which product or price to use. Capture everything you can and explain the gap in Notes.\nTelegram message format:\nSend a short, friendly message in the same language the customer used (Hindi, English, or Hinglish). Start with \"Order Confirmation Needed\" and ask only the specific questions required. Where relevant, include the matching options from the price list with their prices so the customer can pick directly. Do not summarize the full order or guess in this message.\nOnce the customer replies, finalize the structured output and send it to the Billing Agent.\n————\nOUTPUT FORMAT\nRespond with only the structured order below. Do not add any greetings, headings, or extra text. Only produce this output after all clarifications have been received.\nCustomer: name or unknown\nEmail: email or unknown\nItems:\n- qty x product @ price or price list\nNotes: any instructions, gaps, or none\n————\nEXAMPLES\nExample 1 – Complete order\nInput: \"Rahul Sharma ke naam se bill banana hai. Email rahul@gmail.com. Usko 4 LED bulb 9 watt, 2 ceiling fan aur ek 190 litre fridge chahiye. Bulb 85 rupaye piece lagana. Fridge kal deliver karna aur poore bill pe 5% discount dena.\"\nCustomer: Rahul Sharma\nEmail: rahul@gmail.com\nItems:\n- 4 x LED Bulb 9W @ Rs. 85\n- 2 x Ceiling Fan @ price list\n- 1 x Refrigerator 190L @ price list\nNotes: 5% discount on entire order. Refrigerator delivery requested tomorrow.\nExample 2 – Missing AC specification (send Telegram first, then output after reply)\nInput: \"Priya ke liye 4 AC aur 3 ceiling fan chahiye. Delivery Sunday ko kar dena.\"\nTelegram sent before output:\n\"Order Confirmation Needed: Priya ji ke order mein 4 AC hain. Kaunsa model chahiye? Split AC 1 Ton (Rs. 32,000), Split AC 1.5 Ton (Rs. 42,000), ya Window AC 1.5 Ton (Rs. 35,000)?\"\nAfter customer replies (e.g. Split AC 1.5 Ton):\nCustomer: Priya\nEmail: unknown\nItems:\n- 4 x Split AC 1.5 Ton @ price list\n- 3 x Ceiling Fan @ price list\nNotes: Delivery requested on Sunday.\nExample 3 – Hinglish voice transcript\nInput: \"Ramesh bhai ko do darjan nau watt LED bulb, aadha darjan chhe ampere switch aur ek mixer grinder dena. Bulb assi rupaye piece lagana. Payment cash mein karenge.\"\nCustomer: Ramesh\nEmail: unknown\nItems:\n- 24 x LED Bulb 9W @ Rs. 80\n- 6 x Switch 6A @ price list\n- 1 x Mixer Grinder @ price list\nNotes: Customer prefers cash payment.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        272,
+        -16
+      ],
+      "id": "8bd4eb6c-6616-41f6-9fee-387724e8667f",
+      "name": "READER AGENT"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "options": {
+          "systemMessage": "BILLING AGENT – Bright Star Electricals & Appliances\nYou receive a structured order from the Reader Agent and turn it into a complete invoice.\nToday: {{ $now }}\nDue date: {{ $now.plus({days: 7}) }}\nInvoice number: INV-{{ $now }}\n————\nSHOP DETAILS\nShop: Bright Star Electricals & Appliances\nAddress: MG Road, Pune, Maharashtra - 411001\nPhone: +91 98765 43210\nGSTIN: 27ABCDE1234F1Z5\nUPI ID: brightstar@okicici\nGST: 18% on all items\nThese are demo details. Replace them with actual business information before going live. Always include complete shop details on every invoice.\n————\nPRICE LIST\nProduct Price\nLED Bulb 9W Rs. 90\nLED Bulb 12W Rs. 120\nLED Bulb 15W Rs. 160\nLED Tube Light 20W Rs. 250\nLED Panel Light 18W Rs. 350\nCeiling Fan Rs. 1,800\nTable Fan Rs. 1,200\nExhaust Fan Rs. 950\nSwitch 6A Rs. 40\nSocket 6A Rs. 60\nExtension Board Rs. 350\nElectric Iron Rs. 900\nMixer Grinder Rs. 2,500\nRefrigerator 190L Rs. 15,000\nRefrigerator 260L Rs. 24,000\nWashing Machine 7kg Rs. 18,000\nWashing Machine 8kg Rs. 25,000\nSplit AC 1 Ton Rs. 32,000\nSplit AC 1.5 Ton Rs. 42,000\nWindow AC 1.5 Ton Rs. 35,000\nWater Heater 15L Rs. 7,500\nMicrowave Oven 20L Rs. 8,000\n————\nREGULAR CUSTOMERS\nSharma Traders - yourname+sharma@gmail.com - 5% discount\nMehta Sweets - yourname+mehta@gmail.com\nGupta Hospital - yourname+gupta@gmail.com - 10% discount\n————\nSTEPS\nStep 1 - Match items to the price list\nIf the order already has a price for an item, use that price. If not, look it up in the price list above. If a product is not in the list and has no price, leave it out of the invoice and mention it in your reply.\nStep 2 - Match the customer\nCheck if the customer is in the Regular Customers list. If they are, use their email and discount from there. If the order already has an email, use that instead. If a discount is mentioned in the order, apply that. Do not apply both the order discount and the regular customer discount at the same time.\nStep 3 - Calculate the bill\nUse the Calculator tool for all maths. Do not calculate anything in your head.\nThe formula is: Subtotal, then subtract the discount, then add 18% GST, then round to the nearest rupee. That is the final total.\nStep 5 - Email the invoice if the customer has an email\nSend an HTML invoice using inline styles only. The invoice should have a purple header with the hex code 4f46e5 showing the shop name, address, phone, and GSTIN in white text. Below that, include the invoice number, dates, and customer details. Add an itemized table with quantities, rates, and amounts. Show the subtotal, discount, GST, and total, with the final total displayed in large bold purple text. Include the UPI ID in the payment section and end with a thank you message.\nStep 6 - Send a Telegram confirmation to the owner\nSend a short plain text message only. It should include the invoice number and customer name, a summary of items ordered, the final total including GST, whether the invoice was emailed or needs to be shared on WhatsApp, and the Google Drive link using the actual file ID returned by the Drive tool.\nNever invent a Drive link. If saving or emailing fails, say so clearly in the message.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        640,
+        -16
+      ],
+      "id": "6d7e3f30-867a-4b52-b6b1-23a09f91788d",
+      "name": "BILLING AGENT"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        192
+      ],
+      "id": "91e32856-9423-4861-be29-f7d6331786a0",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-image-2.5-sunburst",
+          "mode": "list",
+          "cachedResultName": "GPT-IMAGE-2.5-SUNBURST"
+        },
+        "prompt": "=GENERATE IMAGE:\nYou are a professional invoice designer for Bright Star Electricals & Appliances.\nYour task is to generate a high-quality, realistic, professional GST invoice IMAGE using the complete billing information provided by the Billing Agent.\nThe invoice should look exactly like a formal invoice issued by a real Indian electrical and home appliances store.\nSHOP DETAILS\nShop Name: Bright Star Electricals & Appliances\nAddress: MG Road, Pune, Maharashtra – 411001\nPhone: +91 98765 43210\nGSTIN: 27ABCDE1234F1Z5\nUPI ID: brightstar@okicici\nGST Rate: 18%\nThese are demo shop details. Use them consistently unless updated shop details are explicitly provided.\nINVOICE DATA FROM BILLING AGENT\n{{ $json.output }}\nUse the actual invoice information received from the Billing Agent, including:\n- Invoice number\n- Invoice date and due date\n- Customer name and email\n- Product names and descriptions\n- Quantities, unit prices and individual amounts\n- Subtotal\n- Discount, if applicable\n- GST amount\n- Final payable total\n- Payment information\nIMAGE DESIGN REQUIREMENTS\nGenerate a clean, premium, A4 portrait-style invoice image.\nHeader:\n- Bright Star Electricals & Appliances prominently displayed at the top.\n- Professional purple (#4f46e5) and white color scheme.\n- Full shop address, contact number and GSTIN.\n- A clearly visible TAX INVOICE heading.\nInvoice Information:\n- Invoice number\n- Invoice date\n- Payment due date\n- Bill To: Customer name and email\nItems Table:\nCreate a properly aligned table with these columns:\nSr. No. Item Description Qty Rate (₹) Amount (₹)\nDisplay every item exactly as provided by the Billing Agent.\nBilling Summary:\nShow the following clearly:\nSubtotal: ₹[amount]\nDiscount: ₹[amount]\nGST (18%): ₹[amount]\nGRAND TOTAL: ₹[final amount]\nHighlight the Grand Total in bold purple with a subtle background.\nPayment Section:\nPayment Method: UPI\nUPI ID: brightstar@okicici\nAdd a professional thank-you message:\n\"Thank you for shopping with Bright Star Electricals & Appliances!\"\nSTRICT INSTRUCTIONS\n1. Use ONLY the actual billing data supplied by the Billing Agent.\n2. Do NOT recalculate, modify or round any amount.\n3. Do NOT invent missing customer details, products, prices or discounts.\n4. Copy all invoice numbers, dates, quantities, prices and totals accurately.\n5. Ensure every product from the Billing Agent's invoice is included.\n6. Do NOT generate any QR codes.\n7. Use Indian Rupee (₹) formatting throughout.\n8. Make all text sharp, readable and correctly spelled.\n9. Maintain perfect alignment, professional spacing and a realistic invoice layout.\n10. Do not add unnecessary decorations, illustrations or promotional graphics.\n11. If information is unavailable, omit that optional field rather than inventing it.\n12. The final output must be ONE complete invoice image, not a text explanation.\nFINAL GOAL: Generate a beautiful, realistic, print-ready GST invoice image that looks like an authentic invoice from Bright Star Electricals & Appliances, with all billing information exactly matching the Billing Agent's calculations.\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1008,
+        -16
+      ],
+      "id": "81004e73-ea99-44dd-9092-172bf038ed28",
+      "name": "Generate an image",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "binaryData": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1232,
+        -16
+      ],
+      "id": "c4ef4db0-dc63-49cf-8cc6-e38d75cb6063",
+      "name": "Send a photo message",
+      "webhookId": "7825475c-3332-4761-99f5-46e79ab41370",
+      "credentials": {
+        "telegramApi": {
+          "id": "fZP4jn0rJFO6GeW6",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "READER AGENT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording": {
+      "main": [
+        [
+          {
+            "node": "READER AGENT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "READER AGENT",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "READER AGENT": {
+      "main": [
+        [
+          {
+            "node": "BILLING AGENT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "BILLING AGENT",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BILLING AGENT": {
+      "main": [
+        [
+          {
+            "node": "Generate an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate an image": {
+      "main": [
+        [
+          {
+            "node": "Send a photo message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4a35d591-f44d-4285-9519-ef67f4afe1c1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ca60276e4dd3730b8927e167bf2f26b0cb4f8b777032b91b70eb646bd01d06e5"
+  },
+  "nodeGroups": [],
+  "id": "dOjwM4Ab2A8OVg7y",
+  "tags": []
+}
